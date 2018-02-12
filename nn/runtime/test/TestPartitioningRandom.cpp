@@ -95,7 +95,7 @@ using CompilationBuilder = nn::CompilationBuilder;
 using Device = nn::Device;
 using DeviceManager = nn::DeviceManager;
 using ExecutionPlan = nn::ExecutionPlan;
-using HidlModel = hardware::neuralnetworks::V1_0::Model;
+using HidlModel = hardware::neuralnetworks::V1_1::Model;
 using MemoryBuilder = nn::Memory;
 using ModelBuilder = nn::ModelBuilder;
 using Result = nn::wrapper::Result;
@@ -489,7 +489,8 @@ public:
         return Void();
     }
 
-    Return<void> getSupportedOperations(const Model& model, getSupportedOperations_cb cb) override {
+    Return<void> getSupportedOperations_1_1(const HidlModel& model,
+                                            getSupportedOperations_cb cb) override {
         if (nn::validateModel(model)) {
             const size_t count = model.operations.size();
             std::vector<bool> supported(count);
@@ -508,11 +509,11 @@ public:
         return Void();
     }
 
-    Return<ErrorStatus> prepareModel(const Model& model,
-                                     const sp<IPreparedModelCallback>& callback) override {
+    Return<ErrorStatus> prepareModel_1_1(const HidlModel& model,
+                                         const sp<IPreparedModelCallback>& callback) override {
         // NOTE: We verify that all operations in the model are supported.
         ErrorStatus outStatus = ErrorStatus::INVALID_ARGUMENT;
-        auto ret = getSupportedOperations(
+        auto ret = getSupportedOperations_1_1(
             model,
             [&outStatus](ErrorStatus inStatus, const hidl_vec<bool>& supportedOperations) {
                 if (inStatus == ErrorStatus::NONE) {
@@ -523,7 +524,7 @@ public:
                 }
             });
         if (ret.isOk() && (outStatus == ErrorStatus::NONE)) {
-            return SampleDriver::prepareModel(model, callback);
+            return SampleDriver::prepareModel_1_1(model, callback);
         } else {
             callback->notify(ErrorStatus::INVALID_ARGUMENT, nullptr);
             return ErrorStatus::INVALID_ARGUMENT;
