@@ -15,26 +15,29 @@
 #
 
 batches = 2
-units = 4
+features = 4
+rank = 1
+units = int(features / rank)
 input_size = 3
 memory_size = 10
 
 model = Model()
 
 input = Input("input", "TENSOR_FLOAT32", "{%d, %d}" % (batches, input_size))
-weights_feature = Input("weights_feature", "TENSOR_FLOAT32", "{%d, %d}" % (units, input_size))
-weights_time = Input("weights_time", "TENSOR_FLOAT32", "{%d, %d}" % (units, memory_size))
+weights_feature = Input("weights_feature", "TENSOR_FLOAT32", "{%d, %d}" % (features, input_size))
+weights_time = Input("weights_time", "TENSOR_FLOAT32", "{%d, %d}" % (features, memory_size))
 bias = Input("bias", "TENSOR_FLOAT32", "{%d}" % (units))
-state_in = Input("state_in", "TENSOR_FLOAT32", "{%d, %d}" % (batches, memory_size*units))
+state_in = Input("state_in", "TENSOR_FLOAT32", "{%d, %d}" % (batches, memory_size*features))
 rank_param = Input("rank_param", "TENSOR_INT32", "{1}")
 activation_param = Input("activation_param", "TENSOR_INT32", "{1}")
-state_out = IgnoredOutput("state_out", "TENSOR_FLOAT32", "{%d, %d}" % (batches, memory_size*units))
+state_out = IgnoredOutput("state_out", "TENSOR_FLOAT32", "{%d, %d}" % (batches, memory_size*features))
 output = Output("output", "TENSOR_FLOAT32", "{%d, %d}" % (batches, units))
 
 model = model.Operation("SVDF", input, weights_feature, weights_time, bias, state_in,
                         rank_param, activation_param).To([state_out, output])
 
 input0 = {
+    input: [],
     weights_feature: [
         -0.31930989, -0.36118156, 0.0079667, 0.37613347,
       0.22197971, 0.12416199, 0.27901134, 0.27557442,
@@ -54,11 +57,11 @@ input0 = {
       -0.01580888, -0.14943552, 0.15465137,  0.09784451,  -0.0337657
     ],
     bias: [],
-    rank_param: [1],
+    state_in: [0 for _ in range(batches * memory_size * features)],
+    rank_param: [rank],
     activation_param: [0],
 }
 
-# TODO: State is an intermediate buffer, don't check this against test result.
 test_inputs = [
     0.12609188,  -0.46347019, -0.89598465,
     0.12609188,  -0.46347019, -0.89598465,
@@ -123,17 +126,14 @@ golden_outputs = [
     0.36726,     -0.522303,  -0.456502, -0.175475
 ]
 
-input_sequence_size = int(len(test_inputs) / input_size / batches)
+output0 = {state_out: [0 for _ in range(batches * memory_size * features)],
+           output: []}
 
 # TODO: enable more data points after fixing the reference issue
-#for i in range(input_sequence_size):
 for i in range(1):
   batch_start = i * input_size * batches
   batch_end = batch_start + input_size * batches
   input0[input] = test_inputs[batch_start:batch_end]
-  input0[state_in]  = [0 for _ in range(batches * (memory_size - 1) * units)]
-  output0 = {state_out:[0 for x in range(batches * (memory_size - 1) * units)],
-             output: []}
   golden_start = i * units * batches
   golden_end = golden_start + units * batches
   output0[output] = golden_outputs[golden_start:golden_end]
