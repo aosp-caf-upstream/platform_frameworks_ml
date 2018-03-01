@@ -34,7 +34,8 @@ class SampleDriverFloatSlow : public SampleDriver {
 public:
     SampleDriverFloatSlow() : SampleDriver("sample-float-slow") {}
     Return<void> getCapabilities(getCapabilities_cb _hidl_cb) override;
-    Return<void> getSupportedOperations(const Model& model, getSupportedOperations_cb cb) override;
+    Return<void> getSupportedOperations_1_1(const V1_1::Model& model,
+                                            getSupportedOperations_1_1_cb cb) override;
 };
 
 Return<void> SampleDriverFloatSlow::getCapabilities(getCapabilities_cb cb) {
@@ -46,8 +47,8 @@ Return<void> SampleDriverFloatSlow::getCapabilities(getCapabilities_cb cb) {
     return Void();
 }
 
-Return<void> SampleDriverFloatSlow::getSupportedOperations(const Model& model,
-                                                           getSupportedOperations_cb cb) {
+Return<void> SampleDriverFloatSlow::getSupportedOperations_1_1(const V1_1::Model& model,
+                                                               getSupportedOperations_1_1_cb cb) {
     VLOG(DRIVER) << "getSupportedOperations()";
     if (validateModel(model)) {
         const size_t count = model.operations.size();
